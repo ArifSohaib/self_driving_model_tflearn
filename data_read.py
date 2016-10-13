@@ -29,10 +29,14 @@ def main():
     plt.show()
     print(data['targets'].shape)
     plt.figure()
+    #we require the image to be transposed as it is in dimensions (channels, rows, columns)
+    #so we trabsopose it to (rows, columns, channels)
+    # the ::-1 is required as the data is in the caffe format which is BGR while the display format is RGB
     plt.imshow(images[np.random.choice(range(1000))].transpose((1,2,0))[:,:,::-1])
     plt.show()
+    #notice that the vehicle_states at t is equal to the targets at t-1
     print(vehicle_states[11])
-    print(targets[11])
+    print(targets[10])
 
 if __name__ == '__main__':
     main()
