@@ -5,10 +5,10 @@ defines the model
 reads the data
 
 #Requirements:
-..*python3
-..*tflearn
-..*matplotlib
-..*numpy
+- python3
+- tflearn
+- matplotlib
+- numpy
 
 #Datsset used:
 Deepdrive.io
