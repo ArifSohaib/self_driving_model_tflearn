@@ -3,6 +3,11 @@ from tflearn.layers.core import input_data, dropout, fully_connected
 from tflearn.layers.conv import conv_2d, max_pool_2d
 from tflearn.layers.estimator import regression
 import numpy as np
+import scipy.misc
+import h5py
+import glob
+import matplotlib.pyplot as plt
+
 #generate fake images
 
 #generate fake data
@@ -17,8 +22,8 @@ import numpy as np
 #note that brakes and acceleration could be combined
 
 #frame_size
-nrows = 227
-ncols = 227
+nrows = 64
+ncols = 64
 
 #inputs are
 real_in = tflearn.input_data(shape=[None,6])
@@ -38,10 +43,36 @@ output =  fully_connected(merge_data,2,activation='linear')
 network = regression(output, optimizer='adam', loss='mean_square', learning_rate=0.001)
 # print(network)
 # tflearn.DNN(network)
-def check_model(network,n_samples, n_rows, n_cols):
-    fake_real = np.random.random((n_samples, 6))
-    fake_frame = np.random.random((n_samples, 3, n_rows, n_cols))
-    fake_output = np.random.random((n_samples, 2))
-    model = tflearn.DNN(network)
-    return model.fit([fake_real,fake_frame],fake_output)
-check_model(network, 1000, 227, 227)
+dfiles = glob.glob('./data/*.h5')
+def check_model(dfiles, network,n_samples, n_rows, n_cols):
+    # fake_real = np.random.random((n_samples, 6))
+    # fake_frame = np.random.random((n_samples, 3, n_rows, n_cols))
+    # fake_output = np.random.random((n_samples, 2))
+    model = tflearn.DNN(network,tensorboard_verbose=1)
+    for dfile in dfiles:
+        with h5py.File(dfile) as h5f:
+            #read the data from the file
+            data = dict(h5f.items())
+            #from the data dict, take the images and convert them to 1 byte(8-bits/uint8)
+            images = np.array(data['images'].value, dtype=np.uint8)
+            #change the image channels to RGB from BGR
+            #second dimension has the color channels, which we reverse with ::-1 and take the rest of the dimensions as they are
+            images = images[:,::-1,:,:]
+            #create an array to store resized images
+            img_resized = np.zeros((len(images),64,64, 3),dtype=np.uint8)
+            for idx, img in enumerate(images):
+                img_resized[idx] = scipy.misc.imresize(img, (64,64), 'cubic', 'RGB')
+            images = None
+            img_resized = img_resized.transpose((0,3,1,2))
+            #take the targets and vehicle_states from he data
+            targets = np.array(data['targets'].value)
+            vehicle_states = np.array(data['vehicle_states'].value)
+            #for each target
+            model.fit([vehicle_states,img_resized],targets[:,4:],validation_set=0.2,show_metric=True, snapshot_epoch=True,batch_size=128)
+    predictions = model.predict([vehicle_states[1:10,:],img_resized[1:10]])
+    print(predictions)
+    print(targets[2:11])
+    plt.imshow(predictions)
+    plt.show()
+    # print(model.get_weights())
+check_model(dfiles, network, 1000, 64, 64)
