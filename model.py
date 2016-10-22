@@ -8,10 +8,6 @@ import h5py
 import glob
 import matplotlib.pyplot as plt
 
-#generate fake images
-
-#generate fake data
-
 #image goes into conv model which extracts out the impoartant features eg signs, other vechicles or obsticles
 
 #flatten this out
@@ -26,29 +22,33 @@ nrows = 64
 ncols = 64
 
 #inputs are
-real_in = tflearn.input_data(shape=[None,6])
+# real_in = tflearn.input_data(shape=[None,4])
 #video frame in
-frame_in =  tflearn.input_data(shape=[None, 3, nrows, ncols])
+frame_in =  tflearn.input_data(shape=[None, nrows, ncols,3])
 
 #convolution for frame input
-conv1 = conv_2d(frame_in, 32, 3, activation='relu')
-conv1 = max_pool_2d(conv1, 2)
+net = conv_2d(frame_in, 32, 3, activation='relu')
+net = max_pool_2d(net, 2)
+net = conv_2d(frame_in, 16, 5, activation='relu')
+net = max_pool_2d(net, 2)
 #fully_connected layer in tflearn automatically flattens conv layer input
 #size = (W - F + 2P)/S+1 = (64 - 3 + 2P)/2 + 1 =
 # print(conv1.get_shape().as_list())
-flatten = fully_connected(conv1,2*32*32)
-merge_data = tflearn.layers.merge_ops.merge([flatten, real_in],mode='concat')
-output =  fully_connected(merge_data,2,activation='linear')
+net = fully_connected(net,2*16*16, activation='relu')
+net = fully_connected(net, 1000, activation='elu')
+net = fully_connected(net, 256, activation='elu')
+net = fully_connected(net, 64, activation='elu')
+# merge_data = tflearn.layers.merge_ops.merge([flatten, real_in],mode='concat')
+output =  fully_connected(net,1,activation='sigmoid')
 
 network = regression(output, optimizer='adam', loss='mean_square', learning_rate=0.001)
-# print(network)
-# tflearn.DNN(network)
+print(network)
 dfiles = glob.glob('./data/*.h5')
 def check_model(dfiles, network,n_samples, n_rows, n_cols):
     # fake_real = np.random.random((n_samples, 6))
     # fake_frame = np.random.random((n_samples, 3, n_rows, n_cols))
     # fake_output = np.random.random((n_samples, 2))
-    model = tflearn.DNN(network,tensorboard_verbose=1)
+    model = tflearn.DNN(network,tensorboard_verbose=1, checkpoint_path='./model/model.tfl.ckpt')
     for dfile in dfiles:
         with h5py.File(dfile) as h5f:
             #read the data from the file
@@ -63,16 +63,17 @@ def check_model(dfiles, network,n_samples, n_rows, n_cols):
             for idx, img in enumerate(images):
                 img_resized[idx] = scipy.misc.imresize(img, (64,64), 'cubic', 'RGB')
             images = None
-            img_resized = img_resized.transpose((0,3,1,2))
+            # img_resized = img_resized.transpose((0,3,1,2))
             #take the targets and vehicle_states from he data
             targets = np.array(data['targets'].value)
+            # print(targets[:,5].shape)
             vehicle_states = np.array(data['vehicle_states'].value)
-            #for each target
-            model.fit([vehicle_states,img_resized],targets[:,4:],validation_set=0.2,show_metric=True, snapshot_epoch=True,batch_size=128)
-    predictions = model.predict([vehicle_states[1:10,:],img_resized[1:10]])
+
+            model.fit(img_resized,targets[:,5].reshape(len(targets),1),validation_set=0.2,show_metric=True, snapshot_epoch=True,batch_size=100, snapshot_step=500)
+    predictions = model.predict(img_resized[100:110])
     print(predictions)
-    print(targets[2:11])
-    plt.imshow(predictions)
+    print(targets[101:111,5])
+    plt.plot(predictions,targets[101:111,5])
     plt.show()
     # print(model.get_weights())
 check_model(dfiles, network, 1000, 64, 64)
