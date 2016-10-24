@@ -78,11 +78,40 @@ def build_network():
     net = regression(net, optimizer='adam', loss='mean_square', metric='R2', learning_rate=0.001)
     return net
 
-def main():
+def visualize(targets, predictions):
+    """
+    Makes visualizations using targets and predictions
+    """
+    #convert targets and predictions to np array
+    #dimension 0 is the number of files, since the array was reshaped earlier, dim 2 is always 1(1 prediction) and dimension 1 is number of predictions for each file
+    predictions = np.array(predictions).transpose((0,2,1))
+    #plot the predictions for each file
+    for i in range(predictions.shape[0]):
+        plt.figure()
+        plt.plot(predictions[i],'o')
+        plt.show()
+
+    #reshape targets to the same shape as predictions for easy plotting
+    targets = np.array(targets)
+    targets = targets.reshape(targets.shape[0], 1, targets.shape[1])
+    for i in range(targets.shape[0]):
+        plt.figure()
+        plt.plot(targets[i], 'o')
+        plt.show()
+
+    #plot the targets against the predictions
+    for i in range(predictions.shape[0]):
+        plt.figure()
+        plt.plot(predictions[i].reshape(100),'x', targets[i].reshape(100),'o')
+        plt.show()
+
+
+if __name__ == '__main__':
     network = build_network()
     dfiles = glob.glob('./data/*.h5')
     model = fit_model(dfiles, network)
     predictions = []
+    targets = []
     for dfile in dfiles:
         with h5py.File(dfile) as h5f:
             data = dict(h5f.items())
@@ -95,6 +124,5 @@ def main():
             images = None
 
             predictions.append(get_predictions(model, img_resized[:100]))
-
-if __name__ == '__main__':
-    main()
+            targets.append(data['targets'][1:101,5])
+    visualize(targets, predictions)
