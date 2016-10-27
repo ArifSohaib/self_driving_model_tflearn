@@ -132,11 +132,11 @@ def get_lines(targets, predictions):
 
 def visualize_image(image, target_lines, predicted_lines):
     #this is the first image in the last file read
-    im = Image.fromarray(image[1])
+    im = Image.fromarray(image[1].astype(np.uint8))
     draw = ImageDraw.Draw(im)
     #in predicted_lines[-1] gets the last file, and the last 0 gets the image/data number
-    draw.line((32,63, predicted_lines[-1][0][1],predicted_lines[-1][0][1]), fill=12)
-    draw.line((32,63, target_lines[-1][0][1],target_lines[-1][0][1]), fill=255)
+    draw.line((32,63, predicted_lines[-1][0][1],predicted_lines[-1][0][1]), fill=(0,255,0,128))
+    draw.line((32,63, target_lines[-1][0][1],target_lines[-1][0][1]), fill=(255,0,0,128))
     plt.imshow(im,interpolation='nearest')
     plt.show()
 
