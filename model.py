@@ -34,7 +34,7 @@ def fit_model(dfiles, network):
             #second dimension has the color channels, which we reverse with ::-1 and take the rest of the dimensions as they are
             images = images[:,::-1,:,:]
             #create an array to store resized images
-            img_resized = np.zeros((len(images),64,64, 3),dtype=np.uint8)
+            img_resized = np.zeros((len(images),64,64, 3),dtype=np.uint8)/255
             for idx, img in enumerate(images):
                 img_resized[idx] = scipy.misc.imresize(img, (64,64), 'cubic', 'RGB')
             images = None
@@ -141,19 +141,23 @@ def visualize_image(image, target_lines, predicted_lines):
     plt.show()
 
 def visualize_animation(images, target_lines, predicted_lines):
+    target_lines = np.array(target_lines)
+    target_lines = target_lines.reshape((target_lines.shape[0], target_lines.shape[2],target_lines.shape[3]))
+    predicted_lines = np.array(predicted_lines)
+    predicted_lines = predicted_lines.reshape((predicted_lines.shape[0], predicted_lines.shape[2],predicted_lines.shape[3]))
     #draw an empty canvas for the images
     figure = plt.figure()
     #the canvas is painted with zeros in the given size
     imageplot = plt.imshow(np.zeros((64, 64, 3), dtype=np.uint8))
     #function to generate images for the animation
     def next_frame(i):
-        im = Image.fromarray(images[i])
+        im = Image.fromarray(images[i].astype(np.uint8))
         draw = ImageDraw.Draw(im)
         draw.line((32,63, target_lines[-1][i][0],target_lines[-1][i][1]),fill=(255,0,0,128))
         draw.line((32,63, predicted_lines[-1][i][0],predicted_lines[-1][i][1]),fill=(0,255,0,128))
         imageplot.set_array(im)
         return imageplot,
-    animate = animation.FuncAnimation(figure, next_frame, frames=range(len(images)-1), interval=10, blit=False)
+    animate = animation.FuncAnimation(figure, next_frame, frames=range(len(images)), interval=100, blit=False)
     plt.show()
 
 def get_point(s,start=0,end=63,height= 16):
@@ -184,7 +188,7 @@ if __name__ == '__main__':
             images = np.array(data['images'].value, dtype=np.uint8)
             images = images[:,::-1,:,:]
             #create an array to store resized images
-            img_resized = np.zeros((len(images),64,64, 3),dtype=np.uint8)
+            img_resized = np.zeros((len(images),64,64, 3),dtype=np.uint8)/255
             for idx, img in enumerate(images):
                 img_resized[idx] = scipy.misc.imresize(img, (64,64), 'cubic', 'RGB')
             images = None
